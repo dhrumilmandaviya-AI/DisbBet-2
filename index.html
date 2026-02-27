@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DisbBet — Office Prediction League</title>
+
+<!-- ═══════════════════════════════════════════════════════════
+     STEP 1: Replace these two values with your Supabase project
+     Found in: Supabase Dashboard → Settings → API
+═══════════════════════════════════════════════════════════ -->
+<script>
+  const SUPABASE_URL  = 'https://hkoskqlmpvvowpkvqskx.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhrb3NrcWxtcHZ2b3dwa3Zxc2t4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxODQ5NzcsImV4cCI6MjA4Nzc2MDk3N30.5nT0vqsTC4zkS5CaKCuUngzeGQf2-Emvm3ouaNLdZGk';
+  const ADMIN_PASSWORD = 'ABHFL@123'; // change this!
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+
+<style>
+/* ── reset & root ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #07080d;
+  --surface:  #0f1018;
+  --surface2: #161720;
+  --border:   #1e2030;
+  --border2:  #2a2d40;
+  --gold:     #f0b429;
+  --gold-dim: #c8952080;
+  --green:    #3ecf8e;
+  --red:      #f87171;
+  --purple:   #a78bfa;
+  --blue:     #60a5fa;
+  --text:     #e2e4f0;
+  --muted:    #6b7080;
+  --mono:     'Space Mono', monospace;
+  --display:  'Syne', sans-serif;
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--mono);
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  font-size: 13px;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── keyframes ── */
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes fadeIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+@keyframes ticker  { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
+@keyframes slideIn { from { transform: translateX(60px); opacity:0; } to { transform: none; opacity:1; } }
+@keyframes glow    { 0%,100% { box-shadow: 0 0 20px #f0b42920; } 50% { box-shadow: 0 0 40px #f0b42940; } }
+
+/* ── screens ── */
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; animation: fadeIn .3s ease; }
+
+/* ═══════════ JOIN SCREEN ═══════════ */
+#join-screen {
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 40% at 50% 0%, #f0b42908 0%, transparent 60%),
+    repeating-linear-gradient(0deg, transparent, transparent 40px, #ffffff03 40px, #ffffff03 41px),
+    repeating-linear-gradient(90deg, transparent, transparent 40px, #ffffff03 40px, #ffffff03 41px);
+}
+
+.join-card {
+  width: min(420px, calc(100vw - 32px));
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 48px 36px;
+  text-align: center;
+  animation: glow 3s ease-in-out infinite;
+}
+
+.join-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  display: block;
+  filter: drop-shadow(0 0 20px #f0b42940);
+}
+
+.join-title {
+  font-family: var(--display);
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.join-sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 32px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.join-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 0 28px;
+}
+
+.field-label {
+  display: block;
+  text-align: left;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+
+input[type="text"], input[type="number"], input[type="password"] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  outline: none;
+  transition: border-color .2s;
+  margin-bottom: 12px;
+}
+
+input:focus { border-color: var(--gold-dim); }
+input::placeholder { color: var(--muted); }
+
+.btn-primary {
+  width: 100%;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: opacity .2s, transform .1s;
+  margin-top: 4px;
+}
+
+.btn-primary:hover  { opacity: .9; }
+.btn-primary:active { transform: scale(.98); }
+.btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+.btn-ghost:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+.btn-danger {
+  background: none;
+  border: 1px solid #ef444460;
+  color: var(--red);
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.btn-danger:hover { background: #ef444415; }
+
+.join-hint { color: var(--muted); font-size: 11px; margin-top: 16px; line-height: 1.6; }
+
+/* ═══════════ MAIN APP ═══════════ */
+#app-screen {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* header */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 54px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 12px;
+}
+
+.header-brand {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: -1px;
+  white-space: nowrap;
+}
+
+.header-month {
+  color: var(--muted);
+  font-size: 11px;
+  display: none;
+}
+@media (min-width: 500px) { .header-month { display: block; } }
+
+.actual-pill {
+  background: #0d2a1a;
+  border: 1px solid #166534;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--green);
+  white-space: nowrap;
+  display: none;
+}
+.actual-pill.visible { display: block; }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.user-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px;
+  color: #000; flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 12px;
+  display: none;
+}
+@media (min-width: 400px) { .user-name { display: block; } }
+
+.live-dot {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; color: var(--green);
+}
+.live-dot::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ticker */
+.ticker-bar {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-track {
+  display: inline-block;
+  animation: ticker 40s linear infinite;
+  font-size: 11px;
+  color: var(--muted);
+  padding-left: 20px;
+}
+
+.ticker-item { margin-right: 48px; }
+.ticker-name { font-weight: 700; }
+.ticker-val  { color: var(--gold); }
+.ticker-pts  { color: var(--purple); }
+
+/* tabs */
+.tab-bar {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  padding: 14px 18px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .2s, border-color .2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* countdown */
+.countdown-bar {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+.countdown-time { color: var(--gold); font-weight: 700; }
+.countdown-last { color: var(--muted); }
+
+/* flash */
+.flash-bar {
+  background: #0d2a1a;
+  border-bottom: 1px solid #166534;
+  color: var(--green);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  display: none;
+  animation: fadeIn .3s ease;
+}
+.flash-bar.show { display: block; }
+.flash-bar.error { background: #2a0d0d; border-color: #6d2626; color: var(--red); }
+
+/* ── content panes ── */
+.pane { display: none; padding: 24px 20px; max-width: 680px; margin: 0 auto; }
+.pane.active { display: block; animation: fadeIn .25s ease; }
+
+.pane-title {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+.pane-sub { color: var(--muted); font-size: 11px; margin-bottom: 24px; }
+
+/* ─── PREDICT pane ─── */
+.amount-row {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 8px;
+  gap: 0;
+}
+
+.amount-prefix, .amount-suffix {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  padding: 12px 14px;
+  color: var(--muted);
+  display: flex; align-items: center;
+  font-size: 15px;
+}
+.amount-prefix { border-right: none; border-radius: 10px 0 0 10px; }
+.amount-suffix { border-left: none; border-radius: 0 10px 10px 0; font-size: 12px; }
+
+.amount-input {
+  flex: 1;
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+  border-right: none;
+  font-size: 22px !important;
+  font-weight: 700;
+  color: var(--gold) !important;
+}
+
+.hint-text { font-size: 11px; color: var(--muted); margin-bottom: 20px; }
+
+/* side bets */
+.side-bets-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.side-bets-heading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+.side-bet-row { margin-bottom: 14px; }
+.side-bet-label { color: var(--text); font-size: 12px; margin-bottom: 8px; }
+.choice-group { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.choice-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.choice-btn:hover { border-color: var(--gold-dim); color: var(--text); }
+.choice-btn.selected { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 700; }
+
+/* locked card */
+.locked-card {
+  background: linear-gradient(135deg, #0d2a1a 0%, #0f1a2a 100%);
+  border: 1px solid #1a3a28;
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  animation: fadeIn .4s ease;
+}
+.locked-label { color: var(--green); font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+.locked-amount {
+  font-family: var(--display);
+  font-size: 52px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: -3px;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.locked-result {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.pts-badge {
+  background: var(--purple);
+  color: #fff;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.diff-positive { color: var(--red); font-size: 12px; }
+.diff-negative { color: var(--green); font-size: 12px; }
+
+.locked-side-bets { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 20px; }
+.sb-chip {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.sb-chip b { color: var(--text); }
+
+/* ─── LEADERBOARD pane ─── */
+.leader-list { display: flex; flex-direction: column; gap: 8px; }
+
+.leader-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  transition: border-color .2s;
+  animation: slideIn .3s ease both;
+}
+.leader-row.is-me   { border-color: var(--gold-dim); background: #1a1500; }
+.leader-row.rank-1  { border-color: #f0b42940; }
+
+.leader-rank { font-size: 18px; min-width: 32px; text-align: center; }
+
+.leader-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 15px; color: #000; flex-shrink: 0;
+}
+
+.leader-info { flex: 1; min-width: 0; }
+.leader-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.leader-chips { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+.mini-chip {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 2px 6px; font-size: 10px; color: var(--muted);
+}
+
+.leader-right { text-align: right; flex-shrink: 0; }
+.leader-amount { font-size: 15px; font-weight: 700; color: var(--gold); }
+.leader-pts { font-size: 12px; color: var(--purple); font-weight: 700; }
+.leader-diff { font-size: 11px; }
+
+.pts-bar-wrap { height: 3px; background: var(--border2); border-radius: 2px; margin-top: 4px; }
+.pts-bar { height: 3px; background: var(--purple); border-radius: 2px; transition: width .5s ease; }
+
+/* side bet breakdown */
+.sb-breakdown {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 24px;
+}
+.sb-breakdown-title { color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+.sb-q { margin-bottom: 12px; }
+.sb-q-label { color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+.sb-q-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.sb-option-bar {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 4px 12px; font-size: 11px;
+  display: flex; align-items: center; gap: 6px;
+}
+.sb-option-count { color: var(--gold); font-weight: 700; }
+
+/* ─── HISTORY pane ─── */
+.history-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.history-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.history-month { font-family: var(--display); font-weight: 700; font-size: 16px; color: var(--gold); }
+.history-actual { color: var(--green); font-size: 13px; font-weight: 700; }
+.history-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.history-row:last-child { border-bottom: none; }
+
+/* ─── CHAT pane ─── */
+.chat-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  height: 340px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.chat-msg { display: flex; flex-direction: column; }
+.chat-msg.mine { align-items: flex-end; }
+.chat-sender { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; font-weight: 700; }
+.chat-bubble {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 13px;
+  max-width: 70%;
+  line-height: 1.5;
+}
+.chat-msg.mine .chat-bubble {
+  background: #1a1830;
+  border-color: #3730a360;
+}
+.chat-row { display: flex; gap: 8px; }
+
+/* ─── ADMIN pane ─── */
+.admin-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.admin-card-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--gold); margin-bottom: 16px;
+}
+.stat-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 16px;
+}
+.stat-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px;
+}
+.stat-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.stat-value { font-size: 18px; font-weight: 700; color: var(--gold); }
+
+/* ─── CONTEXT CARD (last month reference) ─── */
+.context-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  display: none;
+}
+.context-card.visible { display: block; }
+.context-card-title {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--muted); margin-bottom: 12px;
+}
+.context-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.context-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.context-box-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.context-box-value { font-size: 17px; font-weight: 700; color: var(--gold); letter-spacing: -0.5px; }
+.context-box-value.green { color: var(--green); }
+.context-vs {
+  text-align: center; font-size: 11px; color: var(--muted);
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.context-vs b { color: var(--text); }
+.context-vs .beat { color: var(--green); font-weight: 700; }
+.context-vs .miss { color: var(--red); font-weight: 700; }
+
+/* ─── EMPTY ─── */
+.empty-state { color: var(--muted); text-align: center; padding: 48px 0; font-size: 13px; line-height: 2; }
+
+/* connection status */
+.conn-status {
+  position: fixed; bottom: 16px; right: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 11px;
+  display: flex; align-items: center; gap: 6px;
+  z-index: 999;
+  pointer-events: none;
+}
+.conn-dot { width: 6px; height: 6px; border-radius: 50%; }
+.conn-dot.ok      { background: var(--green); animation: pulse 2s infinite; }
+.conn-dot.error   { background: var(--red); }
+.conn-dot.loading { background: var(--gold); animation: pulse .8s infinite; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ JOIN SCREEN ═══════════ -->
+<div id="join-screen" class="screen active">
+  <div class="join-card">
+    <span class="join-icon">💸</span>
+    <h1 class="join-title">DisbBet</h1>
+    <p class="join-sub">Office Disbursement Prediction League</p>
+    <div class="join-divider"></div>
+
+    <div id="join-form">
+      <label class="field-label">Your Name</label>
+      <input type="text" id="user-name-input" placeholder="Enter your name" autocomplete="off">
+
+      <button class="btn-primary" onclick="joinAsPlayer()">Enter the Floor →</button>
+
+      <div style="margin-top:16px;">
+        <button class="btn-ghost" onclick="showAdminLogin()" style="width:100%">Admin Login</button>
+      </div>
+    </div>
+
+    <div id="admin-login-form" style="display:none;">
+      <label class="field-label">Admin Password</label>
+      <input type="password" id="admin-pass-input" placeholder="Enter admin password">
+      <button class="btn-primary" onclick="joinAsAdmin()">Access Admin Panel</button>
+      <div style="margin-top:10px;">
+        <button class="btn-ghost" onclick="hideAdminLogin()" style="width:100%">← Back</button>
+      </div>
+    </div>
+
+    <p class="join-hint">Share this URL with your team — everyone joins the same live session</p>
+  </div>
+</div>
+
+<!-- ═══════════ APP SCREEN ═══════════ -->
+<div id="app-screen" class="screen">
+
+  <!-- Header -->
+  <header class="app-header">
+    <span class="header-brand">💸 DisbBet</span>
+    <span class="header-month" id="header-month"></span>
+    <div class="header-right">
+      <div id="actual-pill" class="actual-pill">ACTUAL: <span id="actual-pill-val"></span></div>
+      <div class="live-dot">LIVE</div>
+      <div class="user-avatar" id="hdr-avatar"></div>
+      <span class="user-name" id="hdr-name"></span>
+    </div>
+  </header>
+
+  <!-- Ticker -->
+  <div class="ticker-bar">
+    <div class="ticker-track" id="ticker-track">Loading predictions…</div>
+  </div>
+
+  <!-- Flash -->
+  <div class="flash-bar" id="flash-bar"></div>
+
+  <!-- Tabs -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('predict')">🎯 Predict</button>
+    <button class="tab-btn" onclick="switchTab('board')">🏆 Board</button>
+    <button class="tab-btn" onclick="switchTab('history')">📅 History</button>
+    <button class="tab-btn" onclick="switchTab('chat')">💬 Banter</button>
+    <button class="tab-btn admin-only" id="admin-tab-btn" style="display:none;" onclick="switchTab('admin')">⚙️ Admin</button>
+  </nav>
+
+  <!-- Countdown -->
+  <div class="countdown-bar">
+    <span>⏱ <span class="countdown-time" id="countdown"></span></span>
+    <span class="countdown-last" id="last-month-label"></span>
+  </div>
+
+  <!-- ── PREDICT pane ── -->
+  <div id="pane-predict" class="pane active">
+
+    <!-- locked view -->
+    <div id="locked-view" style="display:none;">
+      <div class="locked-card">
+        <div class="locked-label">🔒 Your Prediction is Locked</div>
+        <div class="locked-amount" id="locked-amount-display"></div>
+        <div id="locked-result" class="locked-result" style="display:none;"></div>
+        <div id="locked-side-bets" class="locked-side-bets"></div>
+        <button class="btn-ghost" onclick="editPrediction()" style="width:100%;margin-top:4px;">✏️ Edit Prediction</button>
+      </div>
+    </div>
+
+    <!-- last month context card -->
+    <div class="context-card" id="context-card">
+      <div class="context-card-title">📊 Last Month Reference</div>
+      <div class="context-grid">
+        <div class="context-box">
+          <div class="context-box-label">Disbursement Till Date</div>
+          <div class="context-box-value" id="ctx-target">—</div>
+        </div>
+        <div class="context-box">
+          <div class="context-box-label">Last Month Actual</div>
+          <div class="context-box-value green" id="ctx-actual">—</div>
+        </div>
+      </div>
+      <div class="context-vs" id="ctx-vs"></div>
+    </div>
+
+    <!-- predict form -->
+    <div id="predict-form">
+      <h2 class="pane-title">Your Prediction</h2>
+      <p class="pane-sub">How much disbursement will be done by month end?</p>
+
+      <div class="amount-row">
+        <span class="amount-prefix">₹</span>
+        <input type="number" class="amount-input" id="pred-amount" placeholder="850.00" step="0.01" min="0">
+        <span class="amount-suffix">Cr</span>
+      </div>
+      <p class="hint-text">Enter value in Crores · e.g. 850 = ₹850 Cr</p>
+
+      <div class="side-bets-card">
+        <div class="side-bets-heading">🎲 Side Bets</div>
+
+        <div class="side-bet-row">
+          <div class="side-bet-label">Will disbursement beat last month?</div>
+          <div class="choice-group" id="sb-beat"></div>
+        </div>
+
+        <div class="side-bet-row">
+          <div class="side-bet-label">Which range bucket?</div>
+          <div class="choice-group" id="sb-range"></div>
+        </div>
+
+        <div class="side-bet-row">
+          <div class="side-bet-label">Final push hour?</div>
+          <div class="choice-group" id="sb-hour"></div>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="submitPrediction()" id="submit-btn">🎯 Lock In Prediction</button>
+    </div>
+  </div>
+
+  <!-- ── BOARD pane ── -->
+  <div id="pane-board" class="pane">
+    <h2 class="pane-title">Leaderboard</h2>
+    <p class="pane-sub" id="board-sub"></p>
+    <div id="leader-list" class="leader-list"></div>
+    <div id="sb-breakdown-wrap"></div>
+  </div>
+
+  <!-- ── HISTORY pane ── -->
+  <div id="pane-history" class="pane">
+    <h2 class="pane-title">Past Months</h2>
+    <p class="pane-sub">Archived results · Hall of shame & fame</p>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- ── CHAT pane ── -->
+  <div id="pane-chat" class="pane">
+    <h2 class="pane-title">Trash Talk</h2>
+    <p class="pane-sub">Talk your book. Defend your call.</p>
+    <div class="chat-box" id="chat-box"></div>
+    <div class="chat-row">
+      <input type="text" id="chat-input" placeholder="Say something…" style="flex:1;margin-bottom:0;" onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="btn-primary" onclick="sendChat()" style="width:auto;padding:12px 20px;margin:0;">Send</button>
+    </div>
+  </div>
+
+  <!-- ── ADMIN pane ── -->
+  <div id="pane-admin" class="pane">
+    <h2 class="pane-title">Admin Panel</h2>
+    <p class="pane-sub">Set results, manage the game</p>
+
+    <div class="stat-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+      <div class="stat-box">
+        <div class="stat-label">Predictions</div>
+        <div class="stat-value" id="admin-pred-count">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Actual Set?</div>
+        <div class="stat-value" id="admin-actual-status">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Disb Till Date</div>
+        <div class="stat-value" id="admin-last-target-display" style="font-size:13px;">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Last Month Actual</div>
+        <div class="stat-value" id="admin-last-actual-display" style="font-size:13px;color:var(--green);">—</div>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-title">📅 Month Setup — Set These First</div>
+      <label class="field-label">Month Label (e.g. February 2025)</label>
+      <input type="text" id="admin-month-input" placeholder="Current month label">
+      <label class="field-label">Disbursement Till Date (Cr) — current month running total</label>
+      <input type="number" id="admin-last-target-input" placeholder="e.g. 420.00 — how much disbursed so far this month?" step="0.01">
+      <label class="field-label">Last Month ACTUAL Disbursement (Cr)</label>
+      <input type="number" id="admin-last-actual-input" placeholder="e.g. 720.50 — what was finally achieved?" step="0.01">
+      <button class="btn-primary" onclick="saveMonthSetup()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);">💾 Save Month Setup</button>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-title">✅ Publish Actual Result</div>
+      <label class="field-label">Actual Disbursement This Month (Cr) *</label>
+      <input type="number" id="admin-actual-input" placeholder="e.g. 885.25" step="0.01">
+      <button class="btn-primary" onclick="publishActual()">✅ Publish & Calculate Scores</button>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-title" style="color:var(--muted);">🔄 New Month</div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:16px;line-height:1.7;">
+        Archives current predictions + result, then resets for a fresh month. Do this at the start of each new cycle.
+      </p>
+      <button class="btn-danger" onclick="startNewMonth()" style="width:100%;">Archive & Start New Month</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Connection status -->
+<div class="conn-status" id="conn-status">
+  <div class="conn-dot loading" id="conn-dot"></div>
+  <span id="conn-label">Connecting…</span>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════════ -->
+<script>
+// ── Supabase init ──────────────────────────────────────────────
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── Side bet config ────────────────────────────────────────────
+const SIDE_BETS = [
+  { id: 'beat',  el: 'sb-beat',  options: ['Yes 📈', 'No 📉'] },
+  { id: 'range', el: 'sb-range', options: ['<500 Cr', '500–800', '800–1100', '1100–1500', '>1500 Cr'] },
+  { id: 'hour',  el: 'sb-hour',  options: ['Before 3 PM', '3–5 PM', '5–7 PM', 'After 7 PM'] },
+];
+
+const AVATAR_COLORS = [
+  '#f0b429','#3ecf8e','#60a5fa','#f87171','#a78bfa',
+  '#fb923c','#34d399','#f472b6','#38bdf8','#a3e635'
+];
+
+// ── state ──────────────────────────────────────────────────────
+let currentUser    = null;   // { name, color, isAdmin }
+let gameState      = null;   // row from game_state table
+let predictions    = [];     // rows from predictions table
+let chatMessages   = [];
+let historyData    = [];
+let selectedTab    = 'predict';
+let myPrediction   = null;
+let sideBetSelections = {};
+
+// ══════════════════════════════════════════════════════════════
+//  INIT: build side-bet buttons
+// ══════════════════════════════════════════════════════════════
+SIDE_BETS.forEach(sb => {
+  const wrap = document.getElementById(sb.el);
+  sb.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = opt;
+    btn.onclick = () => {
+      sideBetSelections[sb.id] = opt;
+      wrap.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    };
+    wrap.appendChild(btn);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+//  JOIN
+// ══════════════════════════════════════════════════════════════
+function showAdminLogin()  { document.getElementById('join-form').style.display='none'; document.getElementById('admin-login-form').style.display='block'; }
+function hideAdminLogin()  { document.getElementById('join-form').style.display='block'; document.getElementById('admin-login-form').style.display='none'; }
+
+function joinAsPlayer() {
+  const name = document.getElementById('user-name-input').value.trim();
+  if (!name) return flashMsg('Enter your name first!', true);
+  const color = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+  currentUser = { name, color, isAdmin: false };
+  startApp();
+}
+
+function joinAsAdmin() {
+  const pass = document.getElementById('admin-pass-input').value;
+  if (pass !== ADMIN_PASSWORD) return flashMsg('Wrong password!', true);
+  const color = '#f0b429';
+  currentUser = { name: 'Admin', color, isAdmin: true };
+  startApp();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  START APP
+// ══════════════════════════════════════════════════════════════
+async function startApp() {
+  document.getElementById('join-screen').classList.remove('active');
+  document.getElementById('app-screen').classList.add('active');
+
+  // header
+  const av = document.getElementById('hdr-avatar');
+  av.style.background = currentUser.color;
+  av.textContent = currentUser.name[0].toUpperCase();
+  document.getElementById('hdr-name').textContent = currentUser.name;
+
+  if (currentUser.isAdmin) {
+    document.getElementById('admin-tab-btn').style.display = 'block';
+  }
+
+  // load data
+  await loadAllData();
+  startRealtime();
+  startCountdown();
+  renderAll();
+
+  // check if I already submitted
+  myPrediction = predictions.find(p => p.name === currentUser.name) || null;
+  renderPredictPane();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DATA LOADING
+// ══════════════════════════════════════════════════════════════
+async function loadAllData() {
+  setConn('loading', 'Loading…');
+  try {
+    // game state (single row, id=1)
+    const { data: gs } = await db.from('game_state').select('*').eq('id', 1).single();
+    gameState = gs || { id:1, month:'', actual:null, disb_till_date:null, last_month_actual:null };
+
+    // predictions for current month
+    const { data: preds } = await db.from('predictions')
+      .select('*')
+      .eq('month_label', gameState.month || '')
+      .order('created_at', { ascending: true });
+    predictions = preds || [];
+
+    // chat (last 60)
+    const { data: chats } = await db.from('chat')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .limit(60);
+    chatMessages = chats || [];
+
+    // history
+    const { data: hist } = await db.from('history')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(6);
+    historyData = hist || [];
+
+    setConn('ok', 'Live');
+  } catch(e) {
+    console.error(e);
+    setConn('error', 'Offline');
+    flashMsg('Connection error — check Supabase config', true);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  REALTIME SUBSCRIPTIONS
+// ══════════════════════════════════════════════════════════════
+function startRealtime() {
+  // game state changes
+  db.channel('game_state')
+    .on('postgres_changes', { event:'*', schema:'public', table:'game_state' }, payload => {
+      gameState = payload.new;
+      renderAll();
+      renderPredictPane();
+    })
+    .subscribe();
+
+  // predictions
+  db.channel('predictions')
+    .on('postgres_changes', { event:'*', schema:'public', table:'predictions' }, async payload => {
+      // reload predictions for current month
+      const { data } = await db.from('predictions')
+        .select('*')
+        .eq('month_label', gameState.month || '')
+        .order('created_at', { ascending: true });
+      predictions = data || [];
+      myPrediction = predictions.find(p => p.name === currentUser.name) || null;
+      renderAll();
+      renderPredictPane();
+    })
+    .subscribe();
+
+  // chat
+  db.channel('chat')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat' }, payload => {
+      chatMessages.push(payload.new);
+      if (chatMessages.length > 60) chatMessages = chatMessages.slice(-60);
+      renderChatPane();
+    })
+    .subscribe();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER ALL
+// ══════════════════════════════════════════════════════════════
+function renderAll() {
+  renderHeader();
+  renderTicker();
+  renderBoardPane();
+  renderHistoryPane();
+  renderChatPane();
+  if (currentUser.isAdmin) renderAdminPane();
+}
+
+function renderHeader() {
+  if (!gameState) return;
+  document.getElementById('header-month').textContent = gameState.month || '';
+  const pill = document.getElementById('actual-pill');
+  if (gameState.actual !== null && gameState.actual !== undefined) {
+    pill.classList.add('visible');
+    document.getElementById('actual-pill-val').textContent = fmtCr(gameState.actual);
+  } else {
+    pill.classList.remove('visible');
+  }
+
+  // countdown bar — show last month actual if available, else target
+  const lmLabel = gameState.disb_till_date
+    ? `Till date: ${fmtCr(gameState.disb_till_date)}`
+    : gameState.last_month_actual
+      ? `Last month actual: ${fmtCr(gameState.last_month_actual)}`
+      : '';
+  document.getElementById('last-month-label').textContent = lmLabel;
+
+  // admin stats
+  document.getElementById('admin-pred-count').textContent = predictions.length;
+  document.getElementById('admin-actual-status').textContent =
+    (gameState.actual !== null && gameState.actual !== undefined) ? fmtCr(gameState.actual) : 'Not set';
+  document.getElementById('admin-last-target-display').textContent = fmtCr(gameState.disb_till_date);
+  document.getElementById('admin-last-actual-display').textContent = fmtCr(gameState.last_month_actual);
+
+  if (gameState.month) document.getElementById('admin-month-input').placeholder = gameState.month;
+  if (gameState.disb_till_date) document.getElementById('admin-last-target-input').placeholder = gameState.disb_till_date;
+  if (gameState.last_month_actual) document.getElementById('admin-last-actual-input').placeholder = gameState.last_month_actual;
+}
+
+function renderTicker() {
+  const track = document.getElementById('ticker-track');
+  if (predictions.length === 0) {
+    track.textContent = '⏳ No predictions yet — be the first!';
+    return;
+  }
+  const sorted = sortedPredictions();
+  let html = '';
+  sorted.forEach((p, i) => {
+    const pts = gameState.actual !== null ? calcPoints(p.value, gameState.actual) : null;
+    html += `<span class="ticker-item">
+      <span class="ticker-name" style="color:${p.color}">● ${p.name}</span>
+      <span class="ticker-val"> ${fmtCr(p.value)}</span>
+      ${pts !== null ? `<span class="ticker-pts"> · ${pts}pts</span>` : ''}
+    </span>`;
+  });
+  // duplicate for seamless loop
+  track.innerHTML = html + html;
+}
+
+function renderPredictPane() {
+  if (!currentUser) return;
+  myPrediction = predictions.find(p => p.name === currentUser.name) || null;
+
+  // ── context card (always visible if we have last month data) ──
+  const hasCtx = gameState.disb_till_date || gameState.last_month_actual;
+  const ctxCard = document.getElementById('context-card');
+  if (hasCtx) {
+    ctxCard.classList.add('visible');
+    document.getElementById('ctx-target').textContent = fmtCr(gameState.disb_till_date);
+    document.getElementById('ctx-actual').textContent = fmtCr(gameState.last_month_actual);
+
+    const vsEl = document.getElementById('ctx-vs');
+    if (gameState.disb_till_date && gameState.last_month_actual) {
+      const remaining = gameState.last_month_actual - gameState.disb_till_date;
+      const pct = (gameState.disb_till_date / gameState.last_month_actual * 100).toFixed(1);
+      vsEl.innerHTML = `<b>${pct}%</b> of last month's actual · <b style="color:${remaining>0?'var(--gold)':'var(--green)'};">${fmtCr(Math.abs(remaining))}</b> ${remaining > 0 ? 'still to go to match last month' : 'already ahead of last month'}`;
+    } else if (gameState.disb_till_date) {
+      vsEl.innerHTML = `Running total as of today`;
+    } else {
+      vsEl.innerHTML = '';
+    }
+  } else {
+    ctxCard.classList.remove('visible');
+  }
+
+  if (myPrediction) {
+    document.getElementById('predict-form').style.display = 'none';
+    document.getElementById('locked-view').style.display = 'block';
+
+    document.getElementById('locked-amount-display').textContent = fmtCr(myPrediction.value);
+
+    const resultEl = document.getElementById('locked-result');
+    if (gameState.actual !== null) {
+      const pts = calcPoints(myPrediction.value, gameState.actual);
+      const diff = ((myPrediction.value - gameState.actual) / gameState.actual * 100);
+      resultEl.style.display = 'flex';
+      resultEl.innerHTML = `
+        <span style="color:var(--muted);font-size:13px;">Actual: ${fmtCr(gameState.actual)}</span>
+        <span class="pts-badge">${pts} pts</span>
+        <span class="${diff > 0 ? 'diff-positive' : 'diff-negative'}">${diff > 0 ? '+' : ''}${diff.toFixed(1)}% off</span>
+      `;
+    } else {
+      resultEl.style.display = 'none';
+    }
+
+    // side bets
+    const sb = myPrediction.side_bets || {};
+    const sbEl = document.getElementById('locked-side-bets');
+    sbEl.innerHTML = Object.entries(sb)
+      .map(([k,v]) => `<span class="sb-chip">${k}: <b>${v}</b></span>`)
+      .join('');
+
+  } else {
+    document.getElementById('predict-form').style.display = 'block';
+    document.getElementById('locked-view').style.display = 'none';
+  }
+}
+
+function renderBoardPane() {
+  const sorted = sortedPredictions();
+  const actual = gameState?.actual;
+
+  document.getElementById('board-sub').textContent = actual !== null
+    ? `Sorted by accuracy · ${predictions.length} players`
+    : `${predictions.length} prediction${predictions.length !== 1 ? 's' : ''} submitted · Sorted by amount`;
+
+  const list = document.getElementById('leader-list');
+  if (sorted.length === 0) {
+    list.innerHTML = '<div class="empty-state">⏳ No predictions yet.<br>Be the first to call it!</div>';
+    document.getElementById('sb-breakdown-wrap').innerHTML = '';
+    return;
+  }
+
+  list.innerHTML = sorted.map((p, i) => {
+    const pts  = actual !== null ? calcPoints(p.value, actual) : null;
+    const diff = actual !== null ? ((p.value - actual) / actual * 100) : null;
+    const isMe = p.name === currentUser.name;
+
+    const chips = Object.entries(p.side_bets || {})
+      .map(([k,v]) => `<span class="mini-chip">${v}</span>`).join('');
+
+    const rankIcon = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="font-size:13px;">#${i+1}</span>`;
+
+    return `
+    <div class="leader-row ${isMe?'is-me':''} ${i===0?'rank-1':''}" style="animation-delay:${i*40}ms;">
+      <div class="leader-rank">${rankIcon}</div>
+      <div class="leader-avatar" style="background:${p.color};">${p.name[0].toUpperCase()}</div>
+      <div class="leader-info">
+        <div class="leader-name">${p.name}${isMe?' <span style="color:var(--gold);font-size:10px;">(you)</span>':''}</div>
+        ${chips ? `<div class="leader-chips">${chips}</div>` : ''}
+        ${pts !== null ? `<div class="pts-bar-wrap"><div class="pts-bar" style="width:${pts}%"></div></div>` : ''}
+      </div>
+      <div class="leader-right">
+        <div class="leader-amount">${fmtCr(p.value)}</div>
+        ${pts !== null ? `<div class="leader-pts">${pts} pts</div>` : ''}
+        ${diff !== null ? `<div class="leader-diff" style="color:${Math.abs(diff)<5?'var(--green)':diff>0?'var(--red)':'var(--muted)'}">
+          ${diff > 0 ? '+' : ''}${diff.toFixed(1)}%
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // side bet breakdown
+  const sbWrap = document.getElementById('sb-breakdown-wrap');
+  if (sorted.length > 0) {
+    const sbDefs = [
+      { id:'beat',  label:'Beat last month?' },
+      { id:'range', label:'Range bucket' },
+      { id:'hour',  label:'Final push hour' },
+    ];
+    let html = '<div class="sb-breakdown"><div class="sb-breakdown-title">🎲 Side Bet Tally</div>';
+    sbDefs.forEach(def => {
+      const counts = {};
+      sorted.forEach(p => {
+        const v = (p.side_bets || {})[def.id];
+        if (v) counts[v] = (counts[v] || 0) + 1;
+      });
+      if (Object.keys(counts).length === 0) return;
+      const opts = Object.entries(counts)
+        .sort((a,b) => b[1]-a[1])
+        .map(([v,c]) => `<span class="sb-option-bar"><span>${v}</span><span class="sb-option-count">${c} 🙋</span></span>`)
+        .join('');
+      html += `<div class="sb-q">
+        <div class="sb-q-label">${def.label}</div>
+        <div class="sb-q-options">${opts}</div>
+      </div>`;
+    });
+    html += '</div>';
+    sbWrap.innerHTML = html;
+  } else {
+    sbWrap.innerHTML = '';
+  }
+}
+
+function renderHistoryPane() {
+  const el = document.getElementById('history-list');
+  if (!historyData || historyData.length === 0) {
+    el.innerHTML = '<div class="empty-state">📅 No history yet.<br>Complete your first month to see archives here.</div>';
+    return;
+  }
+  el.innerHTML = historyData.map(h => {
+    const preds = (h.predictions || []).sort((a,b) =>
+      calcPoints(b.value, h.actual) - calcPoints(a.value, h.actual)
+    );
+    const rows = preds.slice(0, 5).map((p, i) => {
+      const pts = calcPoints(p.value, h.actual);
+      const icon = i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
+      return `<div class="history-row">
+        <span>${icon}</span>
+        <span style="color:${p.color};font-weight:700;">${p.name}</span>
+        <span style="color:var(--gold);">${fmtCr(p.value)}</span>
+        <span class="pts-badge" style="margin-left:auto;">${pts}pts</span>
+      </div>`;
+    }).join('');
+    return `<div class="history-card">
+      <div class="history-header">
+        <span class="history-month">${h.month}</span>
+        <span class="history-actual">${fmtCr(h.actual)}</span>
+      </div>
+      ${(h.disb_till_date || h.last_month_actual) ? `<div style="display:flex;gap:12px;margin-bottom:10px;font-size:11px;color:var(--muted);">
+        ${h.disb_till_date ? `<span>Till Date: <b style="color:var(--gold);">${fmtCr(h.disb_till_date)}</b></span>` : ''}
+        ${h.last_month_actual ? `<span>Prev Actual: <b style="color:var(--green);">${fmtCr(h.last_month_actual)}</b></span>` : ''}
+      </div>` : ''}
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+function renderChatPane() {
+  const box = document.getElementById('chat-box');
+  if (chatMessages.length === 0) {
+    box.innerHTML = '<div class="empty-state" style="padding:20px 0;">💬 No messages yet.<br>Start the banter!</div>';
+    return;
+  }
+  box.innerHTML = chatMessages.map(m => {
+    const isMe = m.name === currentUser.name;
+    return `<div class="chat-msg ${isMe?'mine':''}">
+      <span class="chat-sender" style="color:${m.color};">${m.name}</span>
+      <div class="chat-bubble">${escHtml(m.message)}</div>
+    </div>`;
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderAdminPane() {
+  document.getElementById('admin-pred-count').textContent = predictions.length;
+  document.getElementById('admin-actual-status').textContent =
+    (gameState?.actual !== null && gameState?.actual !== undefined)
+      ? fmtCr(gameState.actual) : 'Not set';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════════════════════════
+async function submitPrediction() {
+  const val = parseFloat(document.getElementById('pred-amount').value);
+  if (isNaN(val) || val <= 0) return flashMsg('Enter a valid amount!', true);
+
+  const row = {
+    name:        currentUser.name,
+    color:       currentUser.color,
+    value:       val,
+    side_bets:   sideBetSelections,
+    month_label: gameState.month || '',
+  };
+
+  // upsert based on name + month_label
+  const { error } = await db.from('predictions')
+    .upsert(row, { onConflict: 'name,month_label' });
+
+  if (error) return flashMsg('Error saving: ' + error.message, true);
+
+  myPrediction = row;
+  flashMsg('🎯 Prediction locked in!');
+  renderPredictPane();
+}
+
+function editPrediction() {
+  document.getElementById('predict-form').style.display = 'block';
+  document.getElementById('locked-view').style.display = 'none';
+  if (myPrediction) {
+    document.getElementById('pred-amount').value = myPrediction.value;
+    // restore side bet selections
+    const sb = myPrediction.side_bets || {};
+    Object.entries(sb).forEach(([id, val]) => {
+      const def = SIDE_BETS.find(d => d.id === id);
+      if (!def) return;
+      const wrap = document.getElementById(def.el);
+      wrap.querySelectorAll('.choice-btn').forEach(btn => {
+        if (btn.textContent === val) btn.classList.add('selected');
+      });
+      sideBetSelections[id] = val;
+    });
+  }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  await db.from('chat').insert({
+    name:    currentUser.name,
+    color:   currentUser.color,
+    message: msg,
+  });
+}
+
+async function saveMonthSetup() {
+  const month      = document.getElementById('admin-month-input').value.trim();
+  const disbTillDate = parseFloat(document.getElementById('admin-last-target-input').value);
+  const lmActual     = parseFloat(document.getElementById('admin-last-actual-input').value);
+
+  const updates = {};
+  if (month)                updates.month = month;
+  if (!isNaN(disbTillDate)) updates.disb_till_date = disbTillDate;
+  if (!isNaN(lmActual))     updates.last_month_actual = lmActual;
+
+  if (Object.keys(updates).length === 0) return flashMsg('Nothing to save — fill in at least one field', true);
+
+  const { error } = await db.from('game_state').update(updates).eq('id', 1);
+  if (error) return flashMsg('Error: ' + error.message, true);
+
+  flashMsg('✅ Month setup saved! Players can now see last month figures.');
+}
+
+async function publishActual() {
+  const actual = parseFloat(document.getElementById('admin-actual-input').value);
+  if (isNaN(actual)) return flashMsg('Enter actual amount!', true);
+
+  const { error } = await db.from('game_state').update({ actual }).eq('id', 1);
+  if (error) return flashMsg('Error: ' + error.message, true);
+
+  flashMsg('✅ Result published! Scores calculated for all players.');
+}
+
+async function startNewMonth() {
+  if (!confirm('Archive current month and start fresh? This cannot be undone.')) return;
+
+  // archive current data
+  if (predictions.length > 0 && gameState.actual !== null) {
+    await db.from('history').insert({
+      month:             gameState.month,
+      actual:            gameState.actual,
+      disb_till_date:    gameState.disb_till_date,
+      last_month_actual: gameState.last_month_actual,
+      predictions:       predictions,
+    });
+  }
+
+  // reset game state — this month's actual becomes next month's last_month_actual
+  const newMonth = new Date().toLocaleString('default', { month:'long', year:'numeric' });
+  await db.from('game_state').update({
+    month:             newMonth,
+    actual:            null,
+    disb_till_date:    null,          // admin updates this as month progresses
+    last_month_actual: gameState.actual || gameState.last_month_actual || null,
+  }).eq('id', 1);
+
+  // clear predictions for old month
+  if (gameState.month) {
+    await db.from('predictions').delete().eq('month_label', gameState.month);
+  }
+
+  myPrediction = null;
+  predictions  = [];
+  await loadAllData();
+  renderAll();
+  renderPredictPane();
+  flashMsg('🔄 New month started! Set the new month target in Month Setup above.');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ══════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  selectedTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('pane-' + tab).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════════
+function fmtCr(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  if (n >= 10000) return `₹${(n/100).toFixed(1)}K Cr`;
+  return `₹${n.toFixed(2)} Cr`;
+}
+
+function calcPoints(pred, actual) {
+  const pct = Math.abs(pred - actual) / actual * 100;
+  if (pct <= 1)  return 100;
+  if (pct <= 2)  return 90;
+  if (pct <= 5)  return 75;
+  if (pct <= 10) return 55;
+  if (pct <= 20) return 30;
+  return 10;
+}
+
+function sortedPredictions() {
+  return [...predictions].sort((a, b) => {
+    if (gameState?.actual !== null && gameState?.actual !== undefined) {
+      return calcPoints(b.value, gameState.actual) - calcPoints(a.value, gameState.actual);
+    }
+    return a.value - b.value;
+  });
+}
+
+function flashMsg(msg, isError=false) {
+  const el = document.getElementById('flash-bar');
+  el.textContent = msg;
+  el.className = 'flash-bar show' + (isError ? ' error' : '');
+  setTimeout(() => el.className = 'flash-bar', 4000);
+}
+
+function setConn(state, label) {
+  const dot = document.getElementById('conn-dot');
+  dot.className = 'conn-dot ' + state;
+  document.getElementById('conn-label').textContent = label;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function startCountdown() {
+  function update() {
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth()+1, 0, 23, 59, 59);
+    const diff = end - now;
+    if (diff <= 0) { document.getElementById('countdown').textContent = 'Month ended!'; return; }
+    const d = Math.floor(diff/86400000);
+    const h = Math.floor((diff%86400000)/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    const s = Math.floor((diff%60000)/1000);
+    document.getElementById('countdown').textContent = `${d}d ${h}h ${m}m ${s}s until month end`;
+  }
+  update();
+  setInterval(update, 1000);
+}
+
+// enter key on join
+document.getElementById('user-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') joinAsPlayer();
+});
+document.getElementById('admin-pass-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') joinAsAdmin();
+});
+</script>
+
+</body>
+</html>
