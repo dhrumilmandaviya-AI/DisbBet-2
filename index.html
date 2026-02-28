@@ -10,9 +10,10 @@
      Found in: Supabase Dashboard → Settings → API
 ═══════════════════════════════════════════════════════════ -->
 <script>
-  const SUPABASE_URL  = 'https://hkoskqlmpvvowpkvqskx.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhrb3NrcWxtcHZ2b3dwa3Zxc2t4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxODQ5NzcsImV4cCI6MjA4Nzc2MDk3N30.5nT0vqsTC4zkS5CaKCuUngzeGQf2-Emvm3ouaNLdZGk';
-  const ADMIN_PASSWORD = 'ABHFL@123'; // change this!
+  const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY';
+  const ADMIN_PASSWORD = 'disb2024'; // change this!
+  const BET_AMOUNT = 100; // ₹ entry fee per player — change this to whatever you agree on
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -651,6 +652,102 @@ input::placeholder { color: var(--muted); }
 .context-vs .beat { color: var(--green); font-weight: 700; }
 .context-vs .miss { color: var(--red); font-weight: 700; }
 
+/* ─── T&C MODAL ─── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: #000000cc;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+  animation: fadeIn .2s ease;
+  padding: 16px;
+}
+.modal-overlay.hidden { display: none; }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  width: min(480px, 100%);
+  max-height: 85vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.modal-title {
+  font-family: var(--display); font-size: 18px; font-weight: 800;
+  color: var(--gold); flex: 1;
+}
+.modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.modal-body h3 { color: var(--text); font-size: 13px; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 1px; }
+.modal-body p  { margin-bottom: 10px; }
+.modal-body .highlight { color: var(--gold); font-weight: 700; }
+.modal-body .warning   { color: var(--red); }
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 10px;
+}
+.tc-checkbox-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 24px;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--muted);
+  cursor: pointer;
+}
+.tc-checkbox-row input { width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; }
+
+/* ─── POT CARD ─── */
+.pot-card {
+  background: linear-gradient(135deg, #1a1200 0%, #0f1a0a 100%);
+  border: 1px solid #f0b42930;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.pot-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 12px; }
+.pot-amount {
+  font-family: var(--display); font-size: 40px; font-weight: 800;
+  color: var(--gold); letter-spacing: -2px; line-height: 1; margin-bottom: 4px;
+}
+.pot-sub { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+.prize-split {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.prize-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px; text-align: center;
+}
+.prize-icon  { font-size: 18px; margin-bottom: 4px; }
+.prize-label { font-size: 10px; color: var(--muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
+.prize-value { font-size: 14px; font-weight: 700; color: var(--green); }
+
+/* ─── WINNER BANNER ─── */
+.winner-banner {
+  background: linear-gradient(90deg, #1a1200, #0a1a0f, #1a1200);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  text-align: center;
+  display: none;
+  animation: glow 2s ease-in-out infinite;
+}
+.winner-banner.visible { display: block; }
+.winner-banner-text { font-size: 13px; color: var(--gold); font-weight: 700; }
+.winner-prize { font-family: var(--display); font-size: 28px; font-weight: 800; color: var(--green); letter-spacing: -1px; }
+
 /* ─── EMPTY ─── */
 .empty-state { color: var(--muted); text-align: center; padding: 48px 0; font-size: 13px; line-height: 2; }
 
@@ -674,6 +771,54 @@ input::placeholder { color: var(--muted); }
 </head>
 <body>
 
+<!-- ═══════════ T&C MODAL ═══════════ -->
+<div class="modal-overlay hidden" id="tc-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span style="font-size:24px;">📜</span>
+      <div class="modal-title">Terms & Conditions</div>
+    </div>
+    <div class="modal-body">
+      <h3>What is DisbBet?</h3>
+      <p>DisbBet is an <span class="highlight">office prediction game</span> where colleagues predict the month-end disbursement figure. Participants contribute a fixed entry fee, and prizes are awarded to the most accurate predictors.</p>
+
+      <h3>Entry Fee & Prize Pool</h3>
+      <p>Each participant contributes <span class="highlight">₹<span id="tc-bet-amount"></span> per month</span>. The total pot is distributed as follows:</p>
+      <p>🥇 <span class="highlight">1st place — 60%</span> of total pot<br>
+         🥈 <span class="highlight">2nd place — 25%</span> of total pot<br>
+         🥉 <span class="highlight">3rd place — 15%</span> of total pot</p>
+      <p>In case of a tie in points, the prize is split equally between tied players.</p>
+
+      <h3>How Scoring Works</h3>
+      <p>Points are awarded based on how close your prediction is to the actual disbursement:</p>
+      <p>Within 1% → 100 pts &nbsp;|&nbsp; Within 2% → 90 pts<br>
+         Within 5% → 75 pts &nbsp;|&nbsp; Within 10% → 55 pts<br>
+         Within 20% → 30 pts &nbsp;|&nbsp; Beyond 20% → 10 pts</p>
+
+      <h3>Rules</h3>
+      <p>• Predictions open 2 days before month end<br>
+         • You may edit your prediction until the Admin locks the round<br>
+         • The Admin publishes the actual figure — this is final<br>
+         • Entry fee must be paid to the designated person before month end<br>
+         • Prize money will be paid out within 2 working days of result</p>
+
+      <h3>Important Disclaimer</h3>
+      <p class="warning">⚠️ This is a friendly office game among consenting colleagues. Participation is entirely voluntary. This is not affiliated with any gambling platform. By joining you confirm you are participating willingly and understand the entry fee is non-refundable once the round begins.</p>
+
+      <h3>Side Bets</h3>
+      <p>Side bets are for fun only — no money is attached to side bet outcomes unless separately agreed by all players.</p>
+    </div>
+    <div class="tc-checkbox-row" onclick="toggleTC()">
+      <input type="checkbox" id="tc-checkbox">
+      <span>I have read and agree to the Terms & Conditions</span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeTC()" style="flex:1;">Cancel</button>
+      <button class="btn-primary" id="tc-accept-btn" onclick="acceptTC()" style="flex:2;" disabled>Join the Game →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ JOIN SCREEN ═══════════ -->
 <div id="join-screen" class="screen active">
   <div class="join-card">
@@ -686,7 +831,7 @@ input::placeholder { color: var(--muted); }
       <label class="field-label">Your Name</label>
       <input type="text" id="user-name-input" placeholder="Enter your name" autocomplete="off">
 
-      <button class="btn-primary" onclick="joinAsPlayer()">Enter the Floor →</button>
+      <button class="btn-primary" onclick="showTC()">Enter the Floor →</button>
 
       <div style="margin-top:16px;">
         <button class="btn-ghost" onclick="showAdminLogin()" style="width:100%">Admin Login</button>
@@ -731,11 +876,12 @@ input::placeholder { color: var(--muted); }
 
   <!-- Tabs -->
   <nav class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('predict')">🎯 Predict</button>
-    <button class="tab-btn" onclick="switchTab('board')">🏆 Board</button>
-    <button class="tab-btn" onclick="switchTab('history')">📅 History</button>
-    <button class="tab-btn" onclick="switchTab('chat')">💬 Banter</button>
-    <button class="tab-btn admin-only" id="admin-tab-btn" style="display:none;" onclick="switchTab('admin')">⚙️ Admin</button>
+    <button class="tab-btn active" onclick="switchTab('predict',this)">🎯 Predict</button>
+    <button class="tab-btn" onclick="switchTab('board',this)">🏆 Board</button>
+    <button class="tab-btn" onclick="switchTab('history',this)">📅 History</button>
+    <button class="tab-btn" onclick="switchTab('chat',this)">💬 Banter</button>
+    <button class="tab-btn" onclick="switchTab('rules',this)">📜 Rules</button>
+    <button class="tab-btn admin-only" id="admin-tab-btn" style="display:none;" onclick="switchTab('admin',this)">⚙️ Admin</button>
   </nav>
 
   <!-- Countdown -->
@@ -793,16 +939,6 @@ input::placeholder { color: var(--muted); }
           <div class="side-bet-label">Will disbursement beat last month?</div>
           <div class="choice-group" id="sb-beat"></div>
         </div>
-
-        <div class="side-bet-row">
-          <div class="side-bet-label">Which range bucket?</div>
-          <div class="choice-group" id="sb-range"></div>
-        </div>
-
-        <div class="side-bet-row">
-          <div class="side-bet-label">Final push hour?</div>
-          <div class="choice-group" id="sb-hour"></div>
-        </div>
       </div>
 
       <button class="btn-primary" onclick="submitPrediction()" id="submit-btn">🎯 Lock In Prediction</button>
@@ -813,8 +949,87 @@ input::placeholder { color: var(--muted); }
   <div id="pane-board" class="pane">
     <h2 class="pane-title">Leaderboard</h2>
     <p class="pane-sub" id="board-sub"></p>
+
+    <!-- Winner banner (shown after result) -->
+    <div class="winner-banner" id="winner-banner">
+      <div class="winner-banner-text" id="winner-name"></div>
+      <div class="winner-prize" id="winner-prize"></div>
+    </div>
+
+    <!-- Pot card -->
+    <div class="pot-card" id="pot-card">
+      <div class="pot-title">💰 Prize Pool</div>
+      <div class="pot-amount" id="pot-total">₹0</div>
+      <div class="pot-sub" id="pot-sub"></div>
+      <div class="prize-split">
+        <div class="prize-box">
+          <div class="prize-icon">🥇</div>
+          <div class="prize-label">1st place</div>
+          <div class="prize-value" id="prize-1">—</div>
+        </div>
+        <div class="prize-box">
+          <div class="prize-icon">🥈</div>
+          <div class="prize-label">2nd place</div>
+          <div class="prize-value" id="prize-2">—</div>
+        </div>
+        <div class="prize-box">
+          <div class="prize-icon">🥉</div>
+          <div class="prize-label">3rd place</div>
+          <div class="prize-value" id="prize-3">—</div>
+        </div>
+      </div>
+    </div>
+
     <div id="leader-list" class="leader-list"></div>
     <div id="sb-breakdown-wrap"></div>
+  </div>
+
+  <!-- ── RULES pane ── -->
+  <div id="pane-rules" class="pane">
+    <h2 class="pane-title">Rules & T&C</h2>
+    <p class="pane-sub">How the game works</p>
+
+    <div class="admin-card" style="margin-bottom:14px;">
+      <div class="admin-card-title">💰 Entry & Prize</div>
+      <p style="color:var(--muted);font-size:12px;line-height:1.9;">
+        Entry fee: <span style="color:var(--gold);font-weight:700;">₹<span class="bet-amt-display"></span> per person</span><br>
+        🥇 1st place wins <span style="color:var(--green);font-weight:700;">60%</span> of pot<br>
+        🥈 2nd place wins <span style="color:var(--green);font-weight:700;">25%</span> of pot<br>
+        🥉 3rd place wins <span style="color:var(--green);font-weight:700;">15%</span> of pot<br>
+        Ties are split equally between tied players
+      </p>
+    </div>
+
+    <div class="admin-card" style="margin-bottom:14px;">
+      <div class="admin-card-title">🎯 Scoring</div>
+      <p style="color:var(--muted);font-size:12px;line-height:1.9;">
+        Within 1% of actual → <span style="color:var(--gold);">100 pts</span><br>
+        Within 2% → <span style="color:var(--gold);">90 pts</span><br>
+        Within 5% → <span style="color:var(--gold);">75 pts</span><br>
+        Within 10% → <span style="color:var(--gold);">55 pts</span><br>
+        Within 20% → <span style="color:var(--gold);">30 pts</span><br>
+        Beyond 20% → <span style="color:var(--gold);">10 pts</span>
+      </p>
+    </div>
+
+    <div class="admin-card" style="margin-bottom:14px;">
+      <div class="admin-card-title">📋 Rules</div>
+      <p style="color:var(--muted);font-size:12px;line-height:1.9;">
+        • Predictions open 2 days before month end<br>
+        • You may edit your prediction until Admin locks the round<br>
+        • Admin publishes the actual figure — this is final<br>
+        • Entry fee must be paid before month end<br>
+        • Prizes paid within 2 working days of result<br>
+        • Side bets are for fun only — no money attached
+      </p>
+    </div>
+
+    <div class="admin-card" style="border-color:#ef444440;">
+      <div class="admin-card-title" style="color:var(--red);">⚠️ Disclaimer</div>
+      <p style="color:var(--muted);font-size:12px;line-height:1.9;">
+        This is a friendly office game among consenting colleagues. Participation is entirely voluntary. Not affiliated with any gambling platform. Entry fee is non-refundable once the round begins. By participating you confirm you are doing so willingly.
+      </p>
+    </div>
   </div>
 
   <!-- ── HISTORY pane ── -->
@@ -905,8 +1120,6 @@ const db = createClient(SUPABASE_URL, SUPABASE_ANON);
 // ── Side bet config ────────────────────────────────────────────
 const SIDE_BETS = [
   { id: 'beat',  el: 'sb-beat',  options: ['Yes 📈', 'No 📉'] },
-  { id: 'range', el: 'sb-range', options: ['<500 Cr', '500–800', '800–1100', '1100–1500', '>1500 Cr'] },
-  { id: 'hour',  el: 'sb-hour',  options: ['Before 3 PM', '3–5 PM', '5–7 PM', 'After 7 PM'] },
 ];
 
 const AVATAR_COLORS = [
@@ -948,11 +1161,29 @@ SIDE_BETS.forEach(sb => {
 function showAdminLogin()  { document.getElementById('join-form').style.display='none'; document.getElementById('admin-login-form').style.display='block'; }
 function hideAdminLogin()  { document.getElementById('join-form').style.display='block'; document.getElementById('admin-login-form').style.display='none'; }
 
-function joinAsPlayer() {
+// ── T&C ──
+let pendingJoinName = '';
+function showTC() {
   const name = document.getElementById('user-name-input').value.trim();
-  if (!name) return flashMsg('Enter your name first!', true);
+  if (!name) { alert('Please enter your name first!'); return; }
+  pendingJoinName = name;
+  document.getElementById('tc-bet-amount').textContent = BET_AMOUNT;
+  document.getElementById('tc-modal').classList.remove('hidden');
+  document.getElementById('tc-checkbox').checked = false;
+  document.getElementById('tc-accept-btn').disabled = true;
+}
+function closeTC() {
+  document.getElementById('tc-modal').classList.add('hidden');
+}
+function toggleTC() {
+  const cb = document.getElementById('tc-checkbox');
+  cb.checked = !cb.checked;
+  document.getElementById('tc-accept-btn').disabled = !cb.checked;
+}
+function acceptTC() {
+  closeTC();
   const color = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
-  currentUser = { name, color, isAdmin: false };
+  currentUser = { name: pendingJoinName, color, isAdmin: false };
   startApp();
 }
 
@@ -987,9 +1218,19 @@ async function startApp() {
   startCountdown();
   renderAll();
 
+  // populate bet amount on rules pane
+  document.querySelectorAll('.bet-amt-display').forEach(el => el.textContent = BET_AMOUNT);
+
   // check if I already submitted
   myPrediction = predictions.find(p => p.name === currentUser.name) || null;
   renderPredictPane();
+
+  // 5-second auto-refresh while app is open
+  setInterval(async () => {
+    await loadAllData();
+    renderAll();
+    renderPredictPane();
+  }, 5000);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1194,10 +1435,30 @@ function renderPredictPane() {
 function renderBoardPane() {
   const sorted = sortedPredictions();
   const actual = gameState?.actual;
+  const n = predictions.length;
+  const pot = n * BET_AMOUNT;
+
+  // pot card
+  document.getElementById('pot-total').textContent = `₹${pot.toLocaleString('en-IN')}`;
+  document.getElementById('pot-sub').textContent = `${n} player${n!==1?'s':''} × ₹${BET_AMOUNT} entry fee`;
+  document.getElementById('prize-1').textContent = pot > 0 ? `₹${Math.floor(pot*0.60).toLocaleString('en-IN')}` : '—';
+  document.getElementById('prize-2').textContent = pot > 0 ? `₹${Math.floor(pot*0.25).toLocaleString('en-IN')}` : '—';
+  document.getElementById('prize-3').textContent = pot > 0 ? `₹${Math.floor(pot*0.15).toLocaleString('en-IN')}` : '—';
+
+  // winner banner
+  const banner = document.getElementById('winner-banner');
+  if (actual !== null && sorted.length > 0) {
+    const winner = sorted[0];
+    banner.classList.add('visible');
+    document.getElementById('winner-name').innerHTML = `🏆 ${winner.name} wins the pot!`;
+    document.getElementById('winner-prize').textContent = `₹${Math.floor(pot*0.60).toLocaleString('en-IN')}`;
+  } else {
+    banner.classList.remove('visible');
+  }
 
   document.getElementById('board-sub').textContent = actual !== null
-    ? `Sorted by accuracy · ${predictions.length} players`
-    : `${predictions.length} prediction${predictions.length !== 1 ? 's' : ''} submitted · Sorted by amount`;
+    ? `Sorted by accuracy · ${n} players`
+    : `${n} prediction${n!==1?'s':''} · Highest → Lowest`;
 
   const list = document.getElementById('leader-list');
   if (sorted.length === 0) {
@@ -1216,6 +1477,11 @@ function renderBoardPane() {
 
     const rankIcon = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="font-size:13px;">#${i+1}</span>`;
 
+    // prize for top 3 after result
+    const prizeAmt = actual !== null
+      ? (i===0 ? Math.floor(pot*0.60) : i===1 ? Math.floor(pot*0.25) : i===2 ? Math.floor(pot*0.15) : null)
+      : null;
+
     return `
     <div class="leader-row ${isMe?'is-me':''} ${i===0?'rank-1':''}" style="animation-delay:${i*40}ms;">
       <div class="leader-rank">${rankIcon}</div>
@@ -1231,6 +1497,7 @@ function renderBoardPane() {
         ${diff !== null ? `<div class="leader-diff" style="color:${Math.abs(diff)<5?'var(--green)':diff>0?'var(--red)':'var(--muted)'}">
           ${diff > 0 ? '+' : ''}${diff.toFixed(1)}%
         </div>` : ''}
+        ${prizeAmt ? `<div style="color:var(--green);font-size:11px;font-weight:700;">₹${prizeAmt.toLocaleString('en-IN')}</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1239,9 +1506,7 @@ function renderBoardPane() {
   const sbWrap = document.getElementById('sb-breakdown-wrap');
   if (sorted.length > 0) {
     const sbDefs = [
-      { id:'beat',  label:'Beat last month?' },
-      { id:'range', label:'Range bucket' },
-      { id:'hour',  label:'Final push hour' },
+      { id:'beat', label:'Beat last month?' },
     ];
     let html = '<div class="sb-breakdown"><div class="sb-breakdown-title">🎲 Side Bet Tally</div>';
     sbDefs.forEach(def => {
@@ -1449,11 +1714,11 @@ async function startNewMonth() {
 // ══════════════════════════════════════════════════════════════
 //  TAB SWITCHING
 // ══════════════════════════════════════════════════════════════
-function switchTab(tab) {
+function switchTab(tab, btn) {
   selectedTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  if (btn) btn.classList.add('active');
   document.getElementById('pane-' + tab).classList.add('active');
 }
 
@@ -1480,9 +1745,11 @@ function calcPoints(pred, actual) {
 function sortedPredictions() {
   return [...predictions].sort((a, b) => {
     if (gameState?.actual !== null && gameState?.actual !== undefined) {
+      // after result: best score first
       return calcPoints(b.value, gameState.actual) - calcPoints(a.value, gameState.actual);
     }
-    return a.value - b.value;
+    // before result: highest prediction to lowest
+    return b.value - a.value;
   });
 }
 
@@ -1521,7 +1788,7 @@ function startCountdown() {
 
 // enter key on join
 document.getElementById('user-name-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') joinAsPlayer();
+  if (e.key === 'Enter') showTC();
 });
 document.getElementById('admin-pass-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') joinAsAdmin();
